@@ -2,10 +2,23 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 import path from 'path'
+import fs from 'fs'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production'
+  // detect possible quasar variables file (.sass or .scss) in project
+  const candidateFiles = [
+    path.resolve(__dirname, 'src/quasar-variables.sass'),
+    path.resolve(__dirname, 'src/quasar-variables.scss'),
+    path.resolve(__dirname, 'src/styles/quasar-variables.sass'),
+    path.resolve(__dirname, 'src/styles/quasar-variables.scss')
+  ]
+  const sassVariablesPath = candidateFiles.find(p => fs.existsSync(p))
+  if (!sassVariablesPath) {
+    // warning only — avoid hard failure in CI; instruct user to add the file or install sass
+    console.warn('[vite.config] quasar-variables not found. Create src/quasar-variables.(sass|scss) and run `npm i -D sass` to avoid import errors.')
+  }
   
   return {
     // set a relative base for static hosting (helps on Render / other hosts)
@@ -14,27 +27,25 @@ export default defineConfig(({ mode }) => {
       vue({
         template: { transformAssetUrls }
       }),
-      quasar({
-        // normalize the path resolution for CI/environments
-        sassVariables: path.resolve(__dirname, 'src/quasar-variables.sass')
-      })
+      // pass sassVariables only when the file exists
+      quasar(sassVariablesPath ? { sassVariables: sassVariablesPath } : {})
     ],
     resolve: {
       alias: {
         src: path.resolve(__dirname, './src')
       }
     },
-    // ensure Sass/SCSS imports can resolve files under src during build (fixes "Can't find stylesheet to import.")
+    // ensure Sass/SCSS imports can resolve files under src and node_modules during build
     css: {
       preprocessorOptions: {
         // for .sass (indented syntax)
         sass: {
-          includePaths: [path.resolve(__dirname, 'src')],
+          includePaths: [path.resolve(__dirname, 'src'), path.resolve(__dirname, 'node_modules')],
           indentedSyntax: true
         },
         // for .scss
         scss: {
-          includePaths: [path.resolve(__dirname, 'src')]
+          includePaths: [path.resolve(__dirname, 'src'), path.resolve(__dirname, 'node_modules')]
         }
       }
     },
