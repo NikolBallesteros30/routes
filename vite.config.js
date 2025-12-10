@@ -24,6 +24,20 @@ export default defineConfig(({ mode }) => {
         src: path.resolve(__dirname, './src')
       }
     },
+    // ensure Sass/SCSS imports can resolve files under src during build (fixes "Can't find stylesheet to import.")
+    css: {
+      preprocessorOptions: {
+        // for .sass (indented syntax)
+        sass: {
+          includePaths: [path.resolve(__dirname, 'src')],
+          indentedSyntax: true
+        },
+        // for .scss
+        scss: {
+          includePaths: [path.resolve(__dirname, 'src')]
+        }
+      }
+    },
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
