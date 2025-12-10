@@ -8,12 +8,15 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production'
   
   return {
+    // set a relative base for static hosting (helps on Render / other hosts)
+    base: isProduction ? './' : '/',
     plugins: [
       vue({
         template: { transformAssetUrls }
       }),
       quasar({
-        sassVariables: 'src/quasar-variables.sass'
+        // normalize the path resolution for CI/environments
+        sassVariables: path.resolve(__dirname, 'src/quasar-variables.sass')
       })
     ],
     resolve: {
@@ -24,7 +27,8 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: !isProduction,
+      // explicitly disable sourcemaps in production to avoid build failures in some CI environments
+      sourcemap: isProduction ? false : true,
       rollupOptions: {
         output: {
           manualChunks: {
@@ -34,8 +38,12 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
+    // ensure NODE_ENV is defined during build
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(mode)
+    },
     server: {
-      port: 5173,
+      port: Number(process.env.PORT) || 5173,
       host: true,
       allowedHosts: [
         'proteccion-de-rutas.onrender.com',
@@ -46,7 +54,7 @@ export default defineConfig(({ mode }) => {
       cors: true
     },
     preview: {
-      port: 5173,
+      port: Number(process.env.PORT) || 5173,
       host: true,
       allowedHosts: [
         'proteccion-de-rutas.onrender.com',
